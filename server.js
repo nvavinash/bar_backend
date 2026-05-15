@@ -69,3 +69,11 @@ require("dotenv").config();
 const { connectDB } = require("./config/db");
 
 connectDB();
+
+// Routes
+app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/admin", require("./routes/adminRoutes"));
+app.use("/api/events", require("./routes/eventRoutes"));
+app.use("/api/members", require("./routes/memberRoutes"));
+app.use("/api/commissioner", require("./routes/commissionerRoutes"));
+app.use("/api/ledger", require("./routes/ledgerRoutes"));

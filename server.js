@@ -71,9 +71,45 @@ const { connectDB } = require("./config/db");
 connectDB();
 
 // Routes
-app.use("/api/auth", require("./routes/authRoutes"));
-app.use("/api/admin", require("./routes/adminRoutes"));
-app.use("/api/events", require("./routes/eventRoutes"));
-app.use("/api/members", require("./routes/memberRoutes"));
-app.use("/api/commissioner", require("./routes/commissionerRoutes"));
-app.use("/api/ledger", require("./routes/ledgerRoutes"));
+try {
+  app.use("/api/auth", require("./routes/authRoutes"));
+  console.log("auth ok");
+} catch (e) {
+  console.error("auth failed", e);
+}
+try {
+ app.use("/api/admin", require("./routes/adminRoutes"));
+  console.log("admin ok");
+} catch (e) {
+  console.error("admin failed", e);
+}
+try {
+ app.use("/api/events", require("./routes/eventRoutes"));
+  console.log("event ok");
+} catch (e) {
+  console.error("event failed", e);
+}
+try {
+ app.use("/api/members", require("./routes/memberRoutes"));
+  console.log("member ok");
+} catch (e) {
+  console.error("member failed", e);
+}
+try {
+ app.use("/api/commissioner", require("./routes/commissionerRoutes"));
+  console.log("commissioner ok");
+} catch (e) {
+  console.error("commissioner failed", e);
+}
+try {
+ app.use("/api/ledger", require("./routes/ledgerRoutes"));
+  console.log("ledger ok");
+} catch (e) {
+  console.error("ledger failed", e);
+}
+// app.use("/api/auth", require("./routes/authRoutes"));
+// app.use("/api/admin", require("./routes/adminRoutes"));
+// app.use("/api/events", require("./routes/eventRoutes"));
+// app.use("/api/members", require("./routes/memberRoutes"));
+// app.use("/api/commissioner", require("./routes/commissionerRoutes"));
+// app.use("/api/ledger", require("./routes/ledgerRoutes"));

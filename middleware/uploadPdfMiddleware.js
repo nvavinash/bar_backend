@@ -8,9 +8,9 @@ const pdfStorage = new CloudinaryStorage({
   params: {
     folder: "bar_uploads/pdfs",
     allowed_formats: ["pdf"],
-    resource_type: "raw", // required for non-image files
+    resource_type: "auto", // required for non-image files
     public_id: (req, file) =>
-      `pdf_${Date.now()}_${Math.round(Math.random() * 1e9)}.pdf`,
+      `pdf_${Date.now()}_${Math.round(Math.random() * 1e9)}`,
   },
 });
 

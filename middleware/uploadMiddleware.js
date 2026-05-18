@@ -15,15 +15,27 @@ const photoStorage = new CloudinaryStorage({
 });
 
 // ─── Cloudinary storage for BAR CERTIFICATES (JPEG/PNG/PDF) ─────────────────
+// const certificateStorage = new CloudinaryStorage({
+//   cloudinary,
+//   params: async (req, file) => ({
+//     folder: "bar_members/certificates",
+//     allowed_formats: ["jpg", "jpeg", "png", "pdf"],
+//     // PDFs must use 'raw' resource type; images use 'image'
+//     resource_type: file.mimetype === "application/pdf" ? "auto" : "image",
+//     public_id: `cert_${Date.now()}_${Math.round(Math.random() * 1e9)}`,
+//   }),
+// });
+
+// ─── Cloudinary storage for BAR CERTIFICATES (JPEG/PNG/PDF) ─────────────────
 const certificateStorage = new CloudinaryStorage({
   cloudinary,
-  params: async (req, file) => ({
+  params: {
     folder: "bar_members/certificates",
-    allowed_formats: ["jpg", "jpeg", "png", "pdf"],
-    // PDFs must use 'raw' resource type; images use 'image'
-    resource_type: file.mimetype === "application/pdf" ? "auto" : "image",
-    public_id: `cert_${Date.now()}_${Math.round(Math.random() * 1e9)}`,
-  }),
+    allowed_formats: ["jpg", "jpeg", "png"],
+    // Use a unique public_id so filenames never collide
+    public_id: (req, file) =>
+      `cert_${Date.now()}_${Math.round(Math.random() * 1e9)}`,
+  },
 });
 
 // ─── File filters (validation preserved exactly as before) ──────────────────
@@ -38,11 +50,11 @@ const photoFileFilter = (req, file, cb) => {
 };
 
 const certificateFileFilter = (req, file, cb) => {
-  const allowed = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
+  const allowed = ["image/jpeg", "image/jpg", "image/png"];
   if (allowed.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only JPEG, PNG, or PDF files are allowed for certificates."));
+    cb(new Error("Only JPEG, PNG files are allowed for certificates."));
   }
 };
 

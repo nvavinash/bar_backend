@@ -35,7 +35,8 @@ const createEvent = async (req, res) => {
     const { title, description, date, type } = req.body;
     let pdf = "";
     if (req.file) {
-      pdf = `/uploads/${req.file.filename}`;
+      // multer-storage-cloudinary stores the full Cloudinary URL in file.path
+      pdf = req.file.path;
     }
 
     const event = await Event.create({
@@ -64,7 +65,9 @@ const updateEvent = async (req, res) => {
     const { title, description, date, type } = req.body;
     let pdf = event.pdf;
     if (req.file) {
-      pdf = `/uploads/${req.file.filename}`;
+      // Cloudinary URL replaces old URL (old file remains in Cloudinary;
+      // delete via API if cleanup is needed)
+      pdf = req.file.path;
     }
 
     event.title = title || event.title;

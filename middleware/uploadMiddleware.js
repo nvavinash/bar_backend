@@ -1,23 +1,32 @@
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("../config/cloudinary");
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, "../uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Storage engine (shared)
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname).toLowerCase());
+// ─── Cloudinary storage for member PHOTOS (JPEG only) ───────────────────────
+const photoStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "bar_members/photos",
+    allowed_formats: ["jpg", "jpeg"],
+    // Use a unique public_id so filenames never collide
+    public_id: (req, file) =>
+      `photo_${Date.now()}_${Math.round(Math.random() * 1e9)}`,
   },
 });
 
-// File filter: JPEG only (for profile photo)
+// ─── Cloudinary storage for BAR CERTIFICATES (JPEG/PNG/PDF) ─────────────────
+const certificateStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => ({
+    folder: "bar_members/certificates",
+    allowed_formats: ["jpg", "jpeg", "png", "pdf"],
+    // PDFs must use 'raw' resource type; images use 'image'
+    resource_type: file.mimetype === "application/pdf" ? "raw" : "image",
+    public_id: `cert_${Date.now()}_${Math.round(Math.random() * 1e9)}`,
+  }),
+});
+
+// ─── File filters (validation preserved exactly as before) ──────────────────
 const photoFileFilter = (req, file, cb) => {
   const isJpeg =
     file.mimetype === "image/jpeg" || file.mimetype === "image/jpg";
@@ -28,7 +37,6 @@ const photoFileFilter = (req, file, cb) => {
   }
 };
 
-// File filter: JPEG, PNG, or PDF (for bar certificate)
 const certificateFileFilter = (req, file, cb) => {
   const allowed = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];
   if (allowed.includes(file.mimetype)) {
@@ -38,7 +46,7 @@ const certificateFileFilter = (req, file, cb) => {
   }
 };
 
-// Combined file filter (used in member upload with both fields)
+// Combined filter used by memberUpload
 const memberFileFilter = (req, file, cb) => {
   if (file.fieldname === "photo") {
     photoFileFilter(req, file, cb);
@@ -49,19 +57,40 @@ const memberFileFilter = (req, file, cb) => {
   }
 };
 
-// Single photo upload (JPEG only, 100KB) – legacy/simple routes
+// ─── Single photo upload (JPEG only, 100 KB) – legacy/simple routes ─────────
 const upload = multer({
-  storage,
+  storage: photoStorage,
   limits: { fileSize: 100 * 1024 }, // 100 KB
   fileFilter: photoFileFilter,
 });
 
-// Multi-field upload for member registration:
-//   field "photo"           → JPEG only, 100 KB
-//   field "barCertificate"  → JPEG/PNG/PDF, 100 KB
+// ─── Multi-field upload for member registration ──────────────────────────────
+//   field "photo"          → JPEG only,         100 KB
+//   field "barCertificate" → JPEG/PNG/PDF,       100 KB
+//
+// NOTE: multer-storage-cloudinary selects the correct storage bucket per field
+// because params() is evaluated per-file (photo → photoStorage,
+// certificate → certificateStorage). We use a custom combined storage that
+// delegates by fieldname.
+const { Readable } = require("stream");
+
+// Proxy storage: routes each file to the right Cloudinary storage bucket
+const memberStorage = {
+  _handleFile(req, file, cb) {
+    const delegate =
+      file.fieldname === "barCertificate" ? certificateStorage : photoStorage;
+    delegate._handleFile(req, file, cb);
+  },
+  _removeFile(req, file, cb) {
+    const delegate =
+      file.fieldname === "barCertificate" ? certificateStorage : photoStorage;
+    delegate._removeFile(req, file, cb);
+  },
+};
+
 const memberUpload = multer({
-  storage,
-  limits: { fileSize: 100 * 1024 }, // 100 KB (applied per file)
+  storage: memberStorage,
+  limits: { fileSize: 100 * 1024 }, // 100 KB per file
   fileFilter: memberFileFilter,
 });
 

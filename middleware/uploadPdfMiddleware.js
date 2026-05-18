@@ -1,23 +1,20 @@
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("../config/cloudinary");
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, "../uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Storage engine
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname).toLowerCase());
+// Cloudinary storage for PDF uploads (events / notices)
+const pdfStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "bar_uploads/pdfs",
+    allowed_formats: ["pdf"],
+    resource_type: "raw", // required for non-image files
+    public_id: (req, file) =>
+      `pdf_${Date.now()}_${Math.round(Math.random() * 1e9)}`,
   },
 });
 
-// PDF-only filter
+// PDF-only filter (unchanged)
 const pdfFilter = (req, file, cb) => {
   if (file.mimetype === "application/pdf") {
     cb(null, true);
@@ -27,8 +24,8 @@ const pdfFilter = (req, file, cb) => {
 };
 
 const uploadPdf = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  storage: pdfStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
   fileFilter: pdfFilter,
 });
 

@@ -1,6 +1,4 @@
 const Notice = require("../models/Notice");
-const path = require("path");
-const fs = require("fs");
 
 // GET /api/notices → public
 const getNotices = async (req, res) => {
@@ -33,7 +31,8 @@ const createNotice = async (req, res) => {
     let pdfPath = null;
     let pdfOriginalName = null;
     if (req.file) {
-      pdfPath = `/uploads/${req.file.filename}`;
+      // multer-storage-cloudinary stores the full Cloudinary URL in file.path
+      pdfPath = req.file.path;
       pdfOriginalName = req.file.originalname;
     }
 
@@ -53,13 +52,8 @@ const updateNotice = async (req, res) => {
     const updateFields = { title, description, type };
 
     if (req.file) {
-      // Delete old PDF file if exists
-      const old = await Notice.findById(req.params.id);
-      if (old?.pdfPath) {
-        const oldPath = path.join(__dirname, "..", old.pdfPath);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      }
-      updateFields.pdfPath = `/uploads/${req.file.filename}`;
+      // Cloudinary URL replaces the old URL
+      updateFields.pdfPath = req.file.path;
       updateFields.pdfOriginalName = req.file.originalname;
     }
 
@@ -81,12 +75,8 @@ const deleteNotice = async (req, res) => {
   try {
     const notice = await Notice.findByIdAndDelete(req.params.id);
     if (!notice) return res.status(404).json({ message: "Notice not found" });
-
-    // Delete PDF file from disk
-    if (notice.pdfPath) {
-      const filePath = path.join(__dirname, "..", notice.pdfPath);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    }
+    // Note: Cloudinary file is not deleted here.
+    // To clean up Cloudinary files on delete, call cloudinary.uploader.destroy(public_id).
 
     res.status(200).json({ message: "Notice deleted successfully" });
   } catch (error) {

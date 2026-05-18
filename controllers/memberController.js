@@ -1,7 +1,7 @@
 const Member = require("../models/Member");
 const Ledger = require("../models/Ledger");
 const PDFDocument = require("pdfkit");
-const fs = require("fs");
+const axios = require("axios");
 const path = require("path");
 
 // POST /api/members → Public – submit membership application
@@ -20,15 +20,16 @@ const addMember = async (req, res) => {
 
     if (req.files) {
       // Multi-field upload (via memberUpload.fields)
+      // multer-storage-cloudinary stores the full Cloudinary URL in file.path
       if (req.files.photo?.[0]) {
-        photo = `/uploads/${req.files.photo[0].filename}`;
+        photo = req.files.photo[0].path;
       }
       if (req.files.barCertificate?.[0]) {
-        barCertificate = `/uploads/${req.files.barCertificate[0].filename}`;
+        barCertificate = req.files.barCertificate[0].path;
       }
     } else if (req.file) {
       // Single-field upload fallback
-      photo = `/uploads/${req.file.filename}`;
+      photo = req.file.path;
     }
 
     const newMember = new Member({
@@ -122,15 +123,15 @@ const updateMember = async (req, res) => {
     const updateFields = { ...req.body };
 
     if (req.files) {
-      // Multi-field upload
+      // Multi-field upload – Cloudinary returns full URL in file.path
       if (req.files.photo?.[0]) {
-        updateFields.photo = `/uploads/${req.files.photo[0].filename}`;
+        updateFields.photo = req.files.photo[0].path;
       }
       if (req.files.barCertificate?.[0]) {
-        updateFields.barCertificate = `/uploads/${req.files.barCertificate[0].filename}`;
+        updateFields.barCertificate = req.files.barCertificate[0].path;
       }
     } else if (req.file) {
-      updateFields.photo = `/uploads/${req.file.filename}`;
+      updateFields.photo = req.file.path;
     }
 
     // Coerce copStatus string → boolean
@@ -189,12 +190,13 @@ const downloadMemberPdf = async (req, res) => {
     doc.fontSize(20).text("Member Application Form", { align: "center" });
     doc.moveDown();
 
-    // Render photo if available
+    // Render photo if available – fetch from Cloudinary URL
     if (member.photo) {
-      const photoPath = path.join(__dirname, "..", member.photo);
-      if (fs.existsSync(photoPath)) {
-        doc.image(photoPath, 50, 90, { width: 100 });
-      } else {
+      try {
+        const response = await axios.get(member.photo, { responseType: "arraybuffer" });
+        const imgBuffer = Buffer.from(response.data);
+        doc.image(imgBuffer, 50, 90, { width: 100 });
+      } catch {
         doc.fontSize(10).fillColor("gray").text("[Photo not available]", 50, 90);
         doc.fillColor("black");
       }

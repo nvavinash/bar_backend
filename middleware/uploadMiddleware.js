@@ -21,7 +21,7 @@ const certificateStorage = new CloudinaryStorage({
     folder: "bar_members/certificates",
     allowed_formats: ["jpg", "jpeg", "png", "pdf"],
     // PDFs must use 'raw' resource type; images use 'image'
-    resource_type: file.mimetype === "application/pdf" ? "raw" : "image",
+    resource_type: file.mimetype === "application/pdf" ? "auto" : "image",
     public_id: `cert_${Date.now()}_${Math.round(Math.random() * 1e9)}`,
   }),
 });
